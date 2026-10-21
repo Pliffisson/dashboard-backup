@@ -1,0 +1,21 @@
+services:
+  backup-manager:
+    build: .
+    container_name: backup-manager
+    ports:
+      - "${BACKUP_PORT:-5005}:5000"
+    volumes:
+      - ${BROCADE_BACKUP_DIR:?Defina BROCADE_BACKUP_DIR no arquivo .env}:/mnt/brocade/backups:ro
+      - ${JUNIPER_BACKUP_DIR:?Defina JUNIPER_BACKUP_DIR no arquivo .env}:/mnt/juniper/backups:ro
+      - ${DATACOM_BACKUP_DIR:?Defina DATACOM_BACKUP_DIR no arquivo .env}:/mnt/datacom/backups:ro
+      - ${FORTINET_BACKUP_DIR:?Defina FORTINET_BACKUP_DIR no arquivo .env}:/mnt/fortinet/backups:ro
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TZ: America/Manaus
+      BACKUP_STALE_HOURS: ${BACKUP_STALE_HOURS:-24}
+      BACKUP_CACHE_SECONDS: ${BACKUP_CACHE_SECONDS:-60}
+    restart: always
+
+networks:
+  default:
+    name: backup-network

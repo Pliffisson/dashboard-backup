@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup Manager | Network Infrastructure</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Breadcrumbs Navigation -->
+        <nav class="breadcrumbs">
+            <a href="{{ url_for('index') }}">Início</a>
+            {% if current_vendor %}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                <a href="{{ url_for('index', vendor=current_vendor) }}">{{ current_vendor }}</a>
+            {% endif %}
+            {% if current_device %}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                <span>{{ current_device }}</span>
+            {% endif %}
+        </nav>
+
+        <header>
+            <div style="display: flex; align-items: center;">
+                <img src="{{ url_for('static', filename='img/logo-enw.png') }}" class="company-logo" alt="Logo ENW">
+                <h1>
+                    {% if current_device %}{{ current_device }}{% elif current_vendor %}{{ current_vendor }}{% else %}Backup Manager Manaus{% endif %}
+                </h1>
+            </div>
+            <div class="controls">
+                <div id="manaus-clock" class="clock-container"></div>
+                <div class="search-container">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="search" id="searchInput" class="search-input" placeholder="Buscar..." aria-label="Buscar itens" oninput="filterView()">
+                </div>
+                <button onclick="const url = new URL(location.href); url.searchParams.set('refresh', '1'); location.href = url;" class="btn-refresh" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    Atualizar
+                </button>
+            </div>
+        </header>
+
+        <main>
+            {% if not current_vendor %}
+                <!-- HOME VIEW: Vendor Cards -->
+                <div class="view-grid" id="mainGrid">
+                    {% for name, info in data.vendors.items() %}
+                    <a href="{{ url_for('index', vendor=name) }}" class="vendor-card clickable-item" data-name="{{ name }}">
+                        <div class="icon-box">
+                            {% if name == 'Datacom' %}
+                                <img src="{{ url_for('static', filename='img/datacom.jpg') }}" alt="Datacom">
+                            {% elif name == 'Juniper' %}
+                                <img src="{{ url_for('static', filename='img/juniper.png') }}" alt="Juniper">
+                            {% elif name == 'Fortinet' %}
+                                <img src="{{ url_for('static', filename='img/fortinet.png') }}" alt="Fortinet">
+                            {% else %}
+                                <img src="{{ url_for('static', filename='img/brocade.png') }}" alt="Brocade">
+                            {% endif %}
+                        </div>
+                        <h2>{{ name }}</h2>
+                        <div class="stats">
+                            <span>{{ info.device_count }} Equipamentos</span>
+                            <span>{{ info.backup_count }} Backups</span>
+                        </div>
+                        {% if not info.available %}
+                        <p class="status-text status-unavailable">Diretório indisponível</p>
+                        {% else %}
+                        <p class="last-update">Último backup: {{ info.last_update }}</p>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+
+            {% elif current_vendor and not current_device %}
+                <!-- VENDOR VIEW: Equipment Folders -->
+                <div class="view-grid folder-grid" id="mainGrid">
+                    {% for device_name, device in vendor_data.devices.items() %}
+                    <a href="{{ url_for('index', vendor=current_vendor, device=device_name) }}" class="folder-card clickable-item" data-name="{{ device_name }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="folder-icon">
+                            <path d="M20 18H4V8h16M20 6h-8l-2-2H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2z"/>
+                        </svg>
+                        <div class="device-name">{{ device_name }}</div>
+                        <div class="file-count">{{ device.files|length }} arquivos</div>
+                        <div class="last-update">Último backup: {{ device.last_update }}</div>
+                        {% if device.status == 'atrasado' %}
+                        <span class="status-badge status-stale">Atrasado (mais de {{ stale_hours }} h)</span>
+                        {% elif device.status == 'ausente' %}
+                        <span class="status-badge status-missing">Sem backup</span>
+                        {% elif device.status == 'indisponivel' %}
+                        <span class="status-badge status-unavailable">Diretório indisponível</span>
+                        {% else %}
+                        <span class="status-badge status-ok">Em dia</span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% if not vendor_data.available %}
+                <div class="empty-state">Diretório de backups indisponível. Verifique o volume e as permissões.</div>
+                {% elif not vendor_data.devices %}
+                <div class="empty-state">Nenhum equipamento encontrado.</div>
+                {% endif %}
+
+            {% else %}
+                <!-- DEVICE VIEW: Files Table -->
+                <section class="device-summary" aria-label="Resumo dos backups">
+                    <div class="summary-item">
+                        <span class="summary-label">Último backup</span>
+                        <strong>{{ device_data.last_update }}</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Versões disponíveis</span>
+                        <strong>{{ device_data.files|length }}</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Estado</span>
+                        {% if device_data.status == 'atrasado' %}
+                        <span class="status-badge status-stale">Atrasado (mais de {{ stale_hours }} h)</span>
+                        {% elif device_data.status == 'ausente' %}
+                        <span class="status-badge status-missing">Sem backup</span>
+                        {% elif device_data.status == 'indisponivel' %}
+                        <span class="status-badge status-unavailable">Diretório indisponível</span>
+                        {% else %}
+                        <span class="status-badge status-ok">Em dia</span>
+                        {% endif %}
+                    </div>
+                </section>
+                <div class="table-container">
+                    <table id="backupTable">
+                        <thead>
+                            <tr>
+                                <th width="210">Versão</th>
+                                <th>Nome do arquivo</th>
+                                <th width="100">Tamanho</th>
+                                <th width="120" style="text-align: center;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in device_data.files %}
+                            <tr class="backup-row clickable-item" data-name="{{ backup.filename }}">
+                                <td class="version-cell">
+                                    <strong>{{ backup.date }}</strong>
+                                    {% if loop.first %}<span class="latest-badge">Mais recente</span>{% endif %}
+                                </td>
+                                <td class="filename">{{ backup.filename }}</td>
+                                <td style="font-family: monospace;">{{ backup.size }}</td>
+                                <td style="text-align: center;">
+                                    <a href="{{ url_for('download_file', vendor=current_vendor, device=current_device, filename=backup.filename) }}" class="download-button" aria-label="Baixar {{ backup.filename }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                        <span>Baixar</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if not device_data.files %}
+                    <div class="empty-state">Nenhum backup disponível para este equipamento.</div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <script>
+        function updateClock() {
+            const options = {
+                timeZone: 'America/Manaus',
+                hour12: false,
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const formatter = new Intl.DateTimeFormat('pt-BR', options);
+            const now = new Date();
+            const formattedDate = formatter.format(now);
+            document.getElementById('manaus-clock').innerText = formattedDate;
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function filterView() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toLowerCase();
+            const items = document.getElementsByClassName("clickable-item");
+
+            for (let i = 0; i < items.length; i++) {
+                const name = items[i].getAttribute("data-name").toLowerCase();
+                if (name.includes(filter)) {
+                    items[i].style.display = "";
+                } else {
+                    items[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
