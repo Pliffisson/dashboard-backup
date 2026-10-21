@@ -1,5 +1,9 @@
 # Backup Manager
 
+![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)
+![Flask 2.3.3](https://img.shields.io/badge/Flask-2.3.3-000000?logo=flask&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+
 Painel Flask para consultar e baixar backups de configuração de equipamentos Brocade, Juniper, Datacom e Fortinet. Foi projetado para uso na rede interna. Os diretórios de backup são montados no container somente para leitura.
 
 ## Funcionalidades
@@ -53,18 +57,18 @@ O `.env` é ignorado pelo Git e pela construção da imagem. Nunca adicione arqu
 O aplicativo reconhece dois formatos, que podem coexistir dentro de um fornecedor:
 
 ```text
-/caminho/para/backups/brocade/
-├── CORE01/
-│   ├── CORE01_20261020_220229.conf
-│   └── CORE01_20261019_220228.conf
-└── CORE02/
-    └── CORE02_20261020_220300.conf
+/caminho/para/backups/fabricante-a/
+├── DISPOSITIVO_A/
+│   ├── DISPOSITIVO_A_20260101_080000.conf
+│   └── DISPOSITIVO_A_20251231_080000.conf
+└── DISPOSITIVO_B/
+    └── DISPOSITIVO_B_20260101_080000.conf
 ```
 
 ```text
-/caminho/para/backups/juniper/
-├── ROTEADOR01_20261020_220229.conf
-└── ROTEADOR01_20261019_220228.conf
+/caminho/para/backups/fabricante-b/
+├── DISPOSITIVO_C_20260101_080000.conf
+└── DISPOSITIVO_C_20251231_080000.conf
 ```
 
 No formato plano, o nome do equipamento é extraído do prefixo anterior a `AAAAMMDD_HHMMSS`. Arquivos que não seguem esse padrão aparecem no grupo **Geral**. O painel lê somente arquivos da raiz ou do primeiro nível de subpastas; pastas mais profundas não são exibidas. Arquivos ocultos e links simbólicos são ignorados.
@@ -94,13 +98,11 @@ backup-manager/
 ├── templates/
 │   └── index.html         # Interface
 └── docs/
-    └── screenshots/       # Capturas de tela da documentação
+    └── screenshots/       # Imagem demonstrativa
 ```
 
-## Capturas de tela
+## Demonstração visual
 
-As capturas abaixo mostram a navegação inicial. A interface atual também apresenta estados de backup e um resumo na tela de arquivos.
+![Exemplo ilustrativo do dashboard com dados fictícios](docs/screenshots/dashboard-demo.png)
 
-| Fornecedores | Equipamentos |
-| :---: | :---: |
-| ![Fornecedores](docs/screenshots/home.png) | ![Equipamentos](docs/screenshots/equipamentos.png) |
+*Imagem ilustrativa com nomes, quantidades e datas fictícios.*
